@@ -1,0 +1,21 @@
+# netlify.toml
+# ─────────────────────────────────────────────
+# Configuration de déploiement Coup d'Main
+# ─────────────────────────────────────────────
+
+[build]
+  publish   = "."          # index.html est à la racine
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+
+# Redirige toutes les routes inconnues vers index.html (SPA)
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

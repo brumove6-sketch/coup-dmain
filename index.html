@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coup d'Main — Dashboard Opérationnel</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ── VARIABLES ── */
+:root {
+  --gold:#C9A84C; --gold-dim:#8A6F2E; --gold-light:#E8C97A;
+  --gold-glow:rgba(201,168,76,.09);
+  --navy:#080C16; --navy2:#0B0F1A; --navy3:#0E1422;
+  --surface:#0F1623; --surface2:#151D2E; --surface3:#1A2235;
+  --border:#1A2438; --border2:#222E45;
+  --text:#E2DCD4; --muted:#3E4A60; --muted2:#6A7A90;
+  --red:#C0392B; --red-bg:rgba(192,57,43,.09);
+  --green:#2E7D52; --green-bg:rgba(46,125,82,.09);
+  --blue:#3B7DD8; --blue-bg:rgba(59,125,216,.09);
+  --gold-bg:rgba(201,168,76,.09);
+  --wa:#25D366;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --mono:'DM Mono','Courier New',monospace;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+
+body {
+  background:var(--navy); color:var(--text);
+  font-family:var(--mono); font-weight:300;
+  min-height:100vh; overflow-x:hidden;
+}
+
+/* Grain overlay */
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:9999; opacity:.4;
+}
+
+/* ── LAYOUT ── */
+.app { display:flex; min-height:100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width:230px; min-width:230px; height:100vh;
+  position:fixed; left:0; top:0;
+  background:var(--surface); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:100;
+}
+.sb-logo { padding:1.75rem; border-bottom:1px solid var(--border); }
+.sb-brand { font-family:var(--serif); font-size:1.3rem; font-weight:300; letter-spacing:.12em; color:var(--gold); }
+.sb-role  { font-size:.48rem; letter-spacing:.3em; text-transform:uppercase; color:var(--muted2); margin-top:.35rem; }
+
+.sb-nav { flex:1; padding:1.25rem 0; overflow-y:auto; }
+.sb-section { font-size:.44rem; letter-spacing:.35em; text-transform:uppercase; color:var(--muted); padding:.75rem 1.5rem .4rem; }
+.sb-item {
+  display:flex; align-items:center; gap:.7rem;
+  padding:.65rem 1.5rem; font-size:.58rem; letter-spacing:.1em;
+  color:var(--muted2); cursor:pointer; transition:all .2s;
+  border-left:2px solid transparent; text-decoration:none;
+  background:none; border-right:none; border-top:none; border-bottom:none;
+  width:100%; font-family:var(--mono); font-weight:300;
+}
+.sb-item:hover { color:var(--text); background:var(--surface2); }
+.sb-item.active { color:var(--gold); border-left-color:var(--gold-dim); background:var(--gold-glow); }
+.sb-badge { margin-left:auto; background:var(--gold-dim); color:var(--navy); font-size:.44rem; padding:.12rem .4rem; }
+
+.sb-user { padding:1.1rem 1.5rem; border-top:1px solid var(--border); display:flex; align-items:center; gap:.65rem; }
+.user-avatar { width:28px; height:28px; background:var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:.56rem; color:var(--navy); font-weight:400; flex-shrink:0; }
+.user-name   { font-size:.6rem; color:var(--text); letter-spacing:.06em; }
+.user-status { font-size:.48rem; color:var(--green); letter-spacing:.1em; display:flex; align-items:center; gap:.35rem; margin-top:.15rem; }
+.s-dot { width:4px; height:4px; border-radius:50%; background:var(--green); }
+
+/* ── MAIN ── */
+.main { margin-left:230px; flex:1; display:flex; flex-direction:column; min-height:100vh; }
+
+/* ── TOPBAR ── */
+.topbar {
+  height:62px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2.5rem; background:var(--surface);
+  position:sticky; top:0; z-index:50;
+}
+.topbar-left { display:flex; align-items:center; gap:1.5rem; }
+.topbar-title { font-size:.56rem; letter-spacing:.28em; text-transform:uppercase; color:var(--muted2); }
+.conn-status { font-size:.5rem; letter-spacing:.12em; display:flex; align-items:center; gap:.4rem; }
+.conn-dot { width:5px; height:5px; border-radius:50%; background:var(--muted); transition:background .3s; }
+.conn-dot.live { background:var(--green); box-shadow:0 0 6px rgba(46,125,82,.5); }
+.conn-label { color:var(--muted); transition:color .3s; }
+.conn-label.live { color:var(--green); }
+
+.topbar-right { display:flex; align-items:center; gap:1rem; }
+.search-inp {
+  background:var(--surface2); border:1px solid var(--border2);
+  color:var(--text); font-family:var(--mono); font-size:.58rem;
+  padding:.46rem .9rem; width:190px; letter-spacing:.05em; outline:none;
+  transition:border-color .2s;
+}
+.search-inp::placeholder { color:var(--muted); }
+.search-inp:focus { border-color:var(--gold-dim); }
+
+.tb-btn {
+  background:transparent; border:1px solid var(--border2);
+  color:var(--muted2); font-family:var(--mono); font-size:.54rem;
+  letter-spacing:.14em; text-transform:uppercase; padding:.44rem .85rem;
+  cursor:pointer; transition:all .2s;
+}
+.tb-btn:hover, .tb-btn.active { border-color:var(--gold-dim); color:var(--gold); }
+
+.wa-btn {
+  display:flex; align-items:center; gap:.4rem;
+  font-size:.54rem; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--wa); border:1px solid rgba(37,211,102,.25);
+  padding:.44rem .85rem; text-decoration:none; transition:all .2s;
+}
+.wa-btn:hover { background:rgba(37,211,102,.07); border-color:var(--wa); }
+
+/* ── CONTENT ── */
+.content { padding:2rem 2.5rem; flex:1; }
+
+/* ── ENGAGEMENT RULE ── */
+.eng-rule {
+  background:var(--surface2); border:1px solid var(--border2);
+  border-left:3px solid var(--gold-dim);
+  padding:1.35rem 1.75rem; margin-bottom:2rem;
+  position:relative; overflow:hidden;
+}
+.eng-rule::after { content:''; position:absolute; top:0; right:0; width:180px; height:100%; background:linear-gradient(to left,var(--gold-glow),transparent); pointer-events:none; }
+.eng-head { display:flex; align-items:center; gap:.65rem; margin-bottom:.7rem; }
+.eng-icon { color:var(--gold); flex-shrink:0; }
+.eng-label { font-size:.5rem; letter-spacing:.3em; text-transform:uppercase; color:var(--gold); }
+.eng-text { font-size:.65rem; color:var(--muted2); line-height:1.9; letter-spacing:.04em; font-style:italic; position:relative; z-index:1; }
+.eng-text strong { color:var(--text); font-weight:400; font-style:normal; }
+
+/* ── STATS ── */
+.stats { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:2rem; }
+.stat { background:var(--surface); padding:1.25rem 1.5rem; position:relative; overflow:hidden; transition:background .2s; }
+.stat:hover { background:var(--surface2); }
+.stat::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:var(--border2); transition:background .3s; }
+.stat:hover::before { background:var(--gold-dim); }
+.stat-lbl { font-size:.46rem; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); margin-bottom:.55rem; }
+.stat-val { font-family:var(--serif); font-size:2rem; font-weight:300; line-height:1; margin-bottom:.25rem; }
+.stat-val.gold  { color:var(--gold); }
+.stat-val.green { color:var(--green); }
+.stat-sub { font-size:.46rem; color:var(--muted); letter-spacing:.08em; }
+.score-bar { height:3px; background:var(--border2); overflow:hidden; margin-top:.5rem; }
+.score-fill { height:100%; background:linear-gradient(90deg,var(--green),var(--gold)); transition:width .8s cubic-bezier(.4,0,.2,1); }
+
+/* ── TOOLBAR ── */
+.tbl-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.1rem; }
+.tbl-title { font-size:.52rem; letter-spacing:.28em; text-transform:uppercase; color:var(--muted2); }
+.tbl-count { font-size:.5rem; color:var(--muted); letter-spacing:.12em; }
+.filter-bar { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+.f-tag { font-size:.5rem; letter-spacing:.16em; text-transform:uppercase; padding:.3rem .75rem; border:1px solid var(--border2); color:var(--muted); cursor:pointer; transition:all .2s; background:transparent; font-family:var(--mono); }
+.f-tag:hover { color:var(--text); border-color:var(--muted); }
+.f-tag.active { color:var(--gold); border-color:var(--gold-dim); background:var(--gold-glow); }
+
+/* ── TABLE ── */
+.mission-table { width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border); }
+.mission-table thead tr { border-bottom:1px solid var(--border2); }
+.mission-table th { text-align:left; font-size:.44rem; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); font-weight:300; padding:.85rem 1rem; white-space:nowrap; }
+.mission-table tbody tr { border-bottom:1px solid var(--border); transition:background .15s; cursor:pointer; }
+.mission-table tbody tr:last-child { border-bottom:none; }
+.mission-table tbody tr:hover { background:var(--surface2); }
+.mission-table tbody tr.cloture { opacity:.38; }
+.mission-table td { padding:.9rem 1rem; font-size:.61rem; letter-spacing:.04em; vertical-align:middle; }
+.cell-client strong { display:block; font-weight:400; font-size:.66rem; margin-bottom:.1rem; }
+.cell-client span { font-size:.54rem; color:var(--muted2); }
+.cell-desc { max-width:220px; font-size:.58rem; color:var(--muted2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.budget-c { font-family:var(--serif); font-size:.95rem; color:var(--muted2); }
+.date-c { font-size:.56rem; color:var(--muted2); }
+
+/* Badges */
+.badge { display:inline-flex; align-items:center; gap:.38rem; font-size:.46rem; letter-spacing:.14em; text-transform:uppercase; padding:.2rem .58rem; white-space:nowrap; }
+.bd { width:4px; height:4px; border-radius:50%; }
+.b-crit { background:var(--red-bg); color:var(--red); } .b-crit .bd { background:var(--red); }
+.b-moy  { background:var(--gold-bg); color:var(--gold); } .b-moy .bd { background:var(--gold); }
+.b-bas  { background:var(--green-bg); color:var(--green); } .b-bas .bd { background:var(--green); }
+
+.status-b { font-size:.46rem; letter-spacing:.14em; text-transform:uppercase; padding:.2rem .6rem; white-space:nowrap; }
+.s-nouveau   { background:var(--blue-bg);  color:var(--blue); }
+.s-paye      { background:var(--green-bg); color:var(--green); }
+.s-matching  { background:var(--blue-bg);  color:var(--blue); }
+.s-diffusion { background:var(--gold-bg);  color:var(--gold); }
+.s-accepte   { background:var(--green-bg); color:var(--green); }
+.s-confirme  { background:var(--gold-bg);  color:var(--gold); }
+.s-clos      { background:rgba(255,255,255,.03); color:var(--muted); }
+
+.score-chip { font-size:.46rem; letter-spacing:.1em; padding:.18rem .55rem; }
+.sc-a { background:rgba(46,125,82,.12); color:var(--green); }
+.sc-b { background:rgba(201,168,76,.12); color:var(--gold); }
+.sc-c { background:rgba(192,57,43,.12); color:var(--red); }
+
+.act-btn { background:transparent; border:1px solid var(--border2); color:var(--muted); font-family:var(--mono); font-size:.48rem; letter-spacing:.12em; text-transform:uppercase; padding:.28rem .65rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
+.act-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+/* Table footer */
+.tbl-foot { display:flex; align-items:center; justify-content:space-between; padding:1rem 1rem; border-top:1px solid var(--border); background:var(--surface); }
+.tbl-info { font-size:.48rem; color:var(--muted); letter-spacing:.1em; }
+.pagination { display:flex; gap:.25rem; }
+.pg-btn { width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:.55rem; border:1px solid var(--border2); color:var(--muted); cursor:pointer; background:transparent; font-family:var(--mono); transition:all .2s; }
+.pg-btn.active, .pg-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+/* ── ADD MISSION FORM ── */
+.add-section { display:none; }
+.add-section.visible { display:block; }
+.form-card {
+  background:var(--surface); border:1px solid var(--border);
+  padding:2.5rem; position:relative; overflow:hidden; margin-bottom:2rem;
+}
+.form-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--gold-dim),transparent); }
+.form-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; padding-bottom:1.25rem; border-bottom:1px solid var(--border); }
+.form-head-title { font-size:.56rem; letter-spacing:.28em; text-transform:uppercase; color:var(--gold-dim); }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem; }
+.form-full { grid-column:1/-1; }
+label { display:block; font-size:.54rem; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:.55rem; }
+input, select, textarea {
+  width:100%; background:var(--navy); border:1px solid var(--border);
+  color:var(--text); font-family:var(--mono); font-weight:300;
+  font-size:.74rem; padding:.8rem .9rem; outline:none;
+  transition:border-color .2s, box-shadow .2s; appearance:none; letter-spacing:.03em;
+}
+input::placeholder, textarea::placeholder { color:var(--muted); font-size:.68rem; }
+input:focus, select:focus, textarea:focus { border-color:var(--gold-dim); box-shadow:0 0 0 3px rgba(201,168,76,.06); }
+select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%233E4A60' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right .9rem center; cursor:pointer; }
+select option { background:#0F1623; }
+textarea { resize:none; line-height:1.7; }
+
+.prio-group { display:grid; grid-template-columns:repeat(3,1fr); gap:.45rem; }
+.pr-opt { display:none; }
+.pr-label { display:flex; align-items:center; justify-content:center; gap:.45rem; padding:.65rem; border:1px solid var(--border); cursor:pointer; font-size:.56rem; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); transition:all .2s; }
+.pr-dot { width:5px; height:5px; border-radius:50%; }
+.pr-opt:checked + .pr-label { border-color:var(--gold-dim); color:var(--text); background:rgba(201,168,76,.05); }
+.dot-c { background:var(--red); } .dot-m { background:var(--gold); } .dot-b { background:var(--green); }
+
+.btn-primary {
+  background:linear-gradient(135deg,var(--gold-dim),var(--gold));
+  color:var(--navy); font-family:var(--mono); font-size:.6rem;
+  letter-spacing:.24em; text-transform:uppercase; border:none;
+  padding:.95rem 2rem; cursor:pointer; font-weight:400;
+  box-shadow:0 6px 24px rgba(201,168,76,.22); transition:opacity .2s,transform .2s;
+}
+.btn-primary:hover { opacity:.9; transform:translateY(-1px); }
+.btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+.btn-secondary { background:transparent; border:1px solid var(--border2); color:var(--muted2); font-family:var(--mono); font-size:.6rem; letter-spacing:.2em; text-transform:uppercase; padding:.9rem 1.8rem; cursor:pointer; transition:all .2s; }
+.btn-secondary:hover { border-color:var(--muted); color:var(--text); }
+
+/* ── DETAIL PANEL ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:190; opacity:0; pointer-events:none; transition:opacity .3s; }
+.overlay.open { opacity:1; pointer-events:all; }
+.panel {
+  position:fixed; right:0; top:0; bottom:0; width:380px;
+  background:var(--surface); border-left:1px solid var(--border);
+  z-index:200; transform:translateX(100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.panel.open { transform:translateX(0); }
+.panel-hd { padding:1.6rem; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; }
+.panel-ref { font-size:.48rem; letter-spacing:.3em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:.45rem; }
+.panel-name { font-family:var(--serif); font-size:1.55rem; font-weight:300; }
+.close-btn { background:none; border:1px solid var(--border2); color:var(--muted); width:26px; height:26px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; flex-shrink:0; font-size:.85rem; }
+.close-btn:hover { border-color:var(--muted); color:var(--text); }
+.panel-body { flex:1; overflow-y:auto; padding:1.6rem; }
+.ps-lbl { font-size:.46rem; letter-spacing:.35em; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+.ps-section { margin-bottom:1.6rem; }
+.dr { display:flex; justify-content:space-between; align-items:flex-start; padding:.4rem 0; border-bottom:1px solid var(--border); }
+.dr:last-child { border-bottom:none; }
+.dk { font-size:.52rem; color:var(--muted); letter-spacing:.12em; }
+.dv { font-size:.6rem; color:var(--text); letter-spacing:.04em; text-align:right; max-width:55%; }
+.pdesc { font-size:.61rem; color:var(--muted2); line-height:1.9; letter-spacing:.04em; }
+
+/* Score block panel */
+.score-block { background:var(--surface2); border:1px solid var(--border2); padding:1.1rem; }
+.score-num { font-family:var(--serif); font-size:2.2rem; font-weight:300; line-height:1; margin-bottom:.4rem; }
+.score-note { font-size:.55rem; color:var(--muted); line-height:1.8; letter-spacing:.04em; margin-top:.5rem; }
+
+/* Rule panel */
+.rule-block { background:rgba(201,168,76,.04); border:1px solid rgba(201,168,76,.18); border-left:2px solid var(--gold-dim); padding:1.1rem; }
+.rule-text { font-size:.62rem; color:var(--muted2); line-height:1.95; letter-spacing:.04em; font-style:italic; }
+.rule-text strong { color:var(--text); font-weight:400; font-style:normal; }
+
+/* Timeline */
+.tl { padding:.4rem 0; }
+.tl-item { display:flex; gap:.9rem; padding-bottom:1.1rem; position:relative; }
+.tl-item:not(:last-child)::after { content:''; position:absolute; left:6px; top:13px; bottom:0; width:1px; background:var(--border2); }
+.tl-dot { width:13px; height:13px; border:1px solid var(--border2); background:var(--surface2); border-radius:50%; flex-shrink:0; margin-top:2px; position:relative; z-index:1; }
+.tl-dot.done { background:var(--gold-dim); border-color:var(--gold-dim); }
+.tl-lbl { font-size:.58rem; color:var(--text); letter-spacing:.06em; margin-bottom:.12rem; }
+.tl-d   { font-size:.5rem;  color:var(--muted); letter-spacing:.1em; }
+
+.panel-foot { padding:1.1rem 1.6rem; border-top:1px solid var(--border); display:flex; gap:.65rem; }
+.p-btn { flex:1; padding:.7rem; font-family:var(--mono); font-size:.54rem; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:all .2s; border:none; }
+.p-primary { background:var(--gold-dim); color:var(--navy); }
+.p-primary:hover { background:var(--gold); }
+.p-secondary { background:transparent; border:1px solid var(--border2); color:var(--muted2); }
+.p-secondary:hover { border-color:var(--muted); color:var(--text); }
+.p-wa { background:transparent; border:1px solid rgba(37,211,102,.3); color:var(--wa); text-decoration:none; display:flex; align-items:center; justify-content:center; gap:.35rem; }
+.p-wa:hover { background:rgba(37,211,102,.07); }
+
+/* ── UPDATE STATUS UI ── */
+.status-select-wrap { margin-top:.75rem; }
+.status-select-wrap select { font-size:.6rem; }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:2rem; right:2rem; z-index:500;
+  background:var(--surface2); border:1px solid var(--border2);
+  border-left:3px solid var(--green);
+  padding:.9rem 1.5rem; font-size:.62rem; letter-spacing:.06em;
+  color:var(--text); transform:translateY(20px); opacity:0;
+  transition:all .3s cubic-bezier(.4,0,.2,1); pointer-events:none;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.error { border-left-color:var(--red); }
+
+/* ── LOADING SPINNER ── */
+.spinner {
+  display:inline-block; width:16px; height:16px;
+  border:2px solid var(--border2); border-top-color:var(--gold);
+  border-radius:50%; animation:spin .7s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Responsive */
+@media(max-width:900px) {
+  .sidebar { display:none; }
+  .main { margin-left:0; }
+  .stats { grid-template-columns:1fr 1fr; }
+  .form-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">Coup d'Main</div>
+    <div class="sb-role">Dashboard opérationnel</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">Missions</div>
+    <button class="sb-item active" onclick="showView('missions')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="1" width="6" height="6" rx=".5"/><rect x="9" y="1" width="6" height="6" rx=".5"/><rect x="1" y="9" width="6" height="6" rx=".5"/><rect x="9" y="9" width="6" height="6" rx=".5"/></svg>
+      Toutes les missions
+      <span class="sb-badge" id="sb-count">—</span>
+    </button>
+    <button class="sb-item" onclick="showView('add')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+      Nouvelle mission
+    </button>
+    <div class="sb-section">Réseau</div>
+    <button class="sb-item" onclick="filterByStatus('Accepté')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="5" r="3"/><path d="M1.5 13.5c0-3 3-5 6.5-5s6.5 2 6.5 5"/></svg>
+      Prestataires actifs
+    </button>
+    <button class="sb-item" onclick="filterByStatus('Clos')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><polyline points="1,9 5,13 15,3"/></svg>
+      Missions clôturées
+    </button>
+  </nav>
+  <div class="sb-user">
+    <div class="user-avatar">CM</div>
+    <div>
+      <div class="user-name">Admin</div>
+      <div class="user-status"><span class="s-dot"></span><span id="user-conn">Connexion…</span></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Tableau de bord</div>
+      <div class="conn-status">
+        <span class="conn-dot" id="conn-dot"></span>
+        <span class="conn-label" id="conn-label">Connexion Airtable…</span>
+      </div>
+    </div>
+    <div id="topbar-date" style="font-size:.54rem;color:var(--muted);letter-spacing:.1em;"></div>
+    <div class="topbar-right">
+      <input class="search-inp" type="text" placeholder="Rechercher une mission…" oninput="searchMissions(this.value)">
+      <button class="tb-btn active" onclick="filterByStatus('all', this)">Toutes</button>
+      <button class="tb-btn" onclick="filterByStatus('En diffusion', this)">En diffusion</button>
+      <button class="tb-btn" onclick="filterByStatus('Accepté', this)">Acceptés</button>
+      <a href="https://wa.me/message/HFUDRC5CYH5MF1" target="_blank" rel="noopener" class="wa-btn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.852L.057 23.75a.5.5 0 00.609.61l5.945-1.464A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.015-1.374l-.36-.214-3.732.919.952-3.63-.235-.374A9.818 9.818 0 1112 21.818z"/></svg>
+        WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- RÈGLE D'ENGAGEMENT -->
+    <div class="eng-rule">
+      <div class="eng-head">
+        <div class="eng-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="eng-label">Protocole d'engagement — Réseau Coup d'Main</div>
+      </div>
+      <div class="eng-text">
+        "Une fois engagé, vous êtes responsable du RDV.
+        <strong>En cas d'imprévu, obligation d'informer le prospect immédiatement pour un report amiable.</strong>
+        Le respect de ce flux conditionne votre maintien dans le réseau."
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats" id="stats-row">
+      <div class="stat"><div class="stat-lbl">Total missions</div><div class="stat-val" id="st-total"><span class="spinner"></span></div><div class="stat-sub">dans Airtable</div></div>
+      <div class="stat"><div class="stat-lbl">En diffusion</div><div class="stat-val gold" id="st-actives">—</div><div class="stat-sub">à verrouiller</div></div>
+      <div class="stat"><div class="stat-lbl">Acceptées</div><div class="stat-val green" id="st-accepte">—</div><div class="stat-sub">verrouillées</div></div>
+      <div class="stat"><div class="stat-lbl">Clôturées</div><div class="stat-val" id="st-clos">—</div><div class="stat-sub">archivées</div></div>
+      <div class="stat">
+        <div class="stat-lbl">Score moyen réseau</div>
+        <div class="stat-val green" id="st-score">—</div>
+        <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+        <div class="stat-sub">fiabilité prestataires</div>
+      </div>
+    </div>
+
+    <!-- MISSIONS VIEW -->
+    <div id="view-missions">
+      <div class="filter-bar">
+        <button class="f-tag active" onclick="tagFilter('all',this)">Tout afficher</button>
+        <button class="f-tag" onclick="tagFilter('Plomberie',this)">Plomberie</button>
+        <button class="f-tag" onclick="tagFilter('Électricité',this)">Électricité</button>
+        <button class="f-tag" onclick="tagFilter('Cuisine',this)">Cuisine</button>
+        <button class="f-tag" onclick="tagFilter('Critique',this)">Critique</button>
+        <button class="f-tag" onclick="tagFilter('Moyenne',this)">Moyenne</button>
+      </div>
+
+      <div class="tbl-toolbar">
+        <div class="tbl-title">Missions — Airtable live</div>
+        <div class="tbl-count" id="tbl-count">—</div>
+      </div>
+
+      <table class="mission-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Client</th><th>Spécialité</th><th>Description</th>
+            <th>Priorité</th><th>Statut</th><th>Date</th><th>Budget</th>
+            <th>Niveau</th><th>Score</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="mission-tbody">
+          <tr><td colspan="11" style="text-align:center;padding:3rem;color:var(--muted);font-size:.6rem;letter-spacing:.1em;">
+            <span class="spinner"></span>&nbsp; Chargement depuis Airtable…
+          </td></tr>
+        </tbody>
+      </table>
+
+      <div class="tbl-foot">
+        <div class="tbl-info" id="tbl-info">—</div>
+        <div class="pagination">
+          <button class="pg-btn">‹</button>
+          <button class="pg-btn active" id="pg-current">1</button>
+          <button class="pg-btn">›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD MISSION VIEW -->
+    <div id="view-add" class="add-section">
+      <div class="form-card">
+        <div class="form-head">
+          <div class="form-head-title">Nouvelle mission — Écriture directe Airtable</div>
+          <button class="btn-secondary" onclick="showView('missions')" style="font-size:.52rem;padding:.5rem 1rem;">← Retour</button>
+        </div>
+        <form id="add-form" onsubmit="createMission(event)">
+          <div class="form-grid">
+            <div><label>Nom du client *</label><input type="text" id="f-nom" placeholder="Nom et prénom" required></div>
+            <div><label>Contact *</label><input type="text" id="f-contact" placeholder="Téléphone ou email" required></div>
+            <div>
+              <label>Spécialité *</label>
+              <select id="f-spec" required>
+                <option value="" disabled selected>Sélectionner</option>
+                <option>Plomberie</option><option>Électricité</option><option>Menuiserie</option>
+                <option>Peinture</option><option>Cuisine</option><option>Montage meuble</option>
+                <option>Maçonnerie</option><option>Chauffage / HVAC</option><option>Serrurerie</option>
+                <option>Déménagement</option><option>Nettoyage</option><option>Autre</option>
+              </select>
+            </div>
+            <div><label>Secteur / Ville</label><input type="text" id="f-secteur" placeholder="Ville ou commune"></div>
+            <div><label>Date souhaitée</label><input type="date" id="f-date"></div>
+            <div><label>Budget estimé</label><input type="text" id="f-budget" placeholder="Ex. : 200 – 500 €"></div>
+            <div>
+              <label>Catégorie</label>
+              <select id="f-categorie">
+                <option value="" disabled selected>Sélectionner</option>
+                <option>Cuisine</option><option>Montage meuble</option>
+                <option>Plomberie</option><option>Électricité</option><option>Autre</option>
+              </select>
+            </div>
+            <div>
+              <label>Priorité</label>
+              <div class="prio-group">
+                <div><input type="radio" name="prio" id="pc" value="Critique" class="pr-opt"><label for="pc" class="pr-label"><span class="pr-dot dot-c"></span>Critique</label></div>
+                <div><input type="radio" name="prio" id="pm" value="Moyenne" class="pr-opt" checked><label for="pm" class="pr-label"><span class="pr-dot dot-m"></span>Moyenne</label></div>
+                <div><input type="radio" name="prio" id="pb" value="Basse" class="pr-opt"><label for="pb" class="pr-label"><span class="pr-dot dot-b"></span>Basse</label></div>
+              </div>
+            </div>
+            <div class="form-full"><label>Description *</label><textarea id="f-desc" rows="4" placeholder="Décrivez le problème, le contexte, les contraintes d'accès…" required></textarea></div>
+          </div>
+          <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+            <button type="submit" class="btn-primary" id="submit-btn">Créer la mission dans Airtable →</button>
+            <button type="button" class="btn-secondary" onclick="document.getElementById('add-form').reset()">Réinitialiser</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- DETAIL PANEL -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="panel-hd">
+    <div>
+      <div class="panel-ref" id="p-ref">—</div>
+      <div class="panel-name" id="p-name">—</div>
+    </div>
+    <button class="close-btn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="ps-section">
+      <div class="ps-lbl">Informations mission</div>
+      <div class="dr"><div class="dk">Spécialité</div><div class="dv" id="p-spec">—</div></div>
+      <div class="dr"><div class="dk">Secteur</div><div class="dv" id="p-secteur">—</div></div>
+      <div class="dr"><div class="dk">Date souhaitée</div><div class="dv" id="p-date">—</div></div>
+      <div class="dr"><div class="dk">Budget</div><div class="dv" id="p-budget">—</div></div>
+      <div class="dr"><div class="dk">Priorité</div><div class="dv" id="p-prio">—</div></div>
+      <div class="dr"><div class="dk">Catégorie</div><div class="dv" id="p-cat">—</div></div>
+      <div class="dr"><div class="dk">Niveau chantier</div><div class="dv" id="p-niveau">—</div></div>
+    </div>
+    <div class="ps-section">
+      <div class="ps-lbl">Description</div>
+      <div class="pdesc" id="p-desc">—</div>
+    </div>
+    <div class="ps-section">
+      <div class="ps-lbl">Contact client</div>
+      <div class="dr"><div class="dk">Contact</div><div class="dv" id="p-contact">—</div></div>
+    </div>
+    <div class="ps-section">
+      <div class="ps-lbl">Changer le statut</div>
+      <div class="status-select-wrap">
+        <select id="p-status-select" onchange="updateStatus()">
+          <option value="Nouveau">Nouveau</option>
+          <option value="Payé">Payé</option>
+          <option value="Pris en charge">Pris en charge</option>
+          <option value="En diffusion">En diffusion</option>
+          <option value="Accepté">Accepté</option>
+          <option value="Inspection prévue">Inspection prévue</option>
+          <option value="Confirmé">Confirmé</option>
+          <option value="Clos">Clos</option>
+        </select>
+      </div>
+    </div>
+    <div class="ps-section">
+      <div class="ps-lbl">Score de fiabilité prestataire</div>
+      <div class="score-block">
+        <div class="score-num" id="p-score" style="color:var(--green)">—</div>
+        <div class="score-bar" style="margin-top:.4rem;"><div class="score-fill" id="p-score-fill" style="width:0%"></div></div>
+        <div class="score-note" id="p-score-note">Champ "Score de Fiabilité" depuis Airtable.</div>
+      </div>
+    </div>
+    <div class="ps-section">
+      <div class="ps-lbl">Protocole d'engagement</div>
+      <div class="rule-block">
+        <div class="rule-text">"Une fois engagé, vous êtes responsable du RDV. <strong>En cas d'imprévu, obligation d'informer le prospect immédiatement pour un report amiable.</strong> Le respect de ce flux conditionne votre maintien dans le réseau."</div>
+      </div>
+    </div>
+    <div class="ps-section">
+      <div class="ps-lbl">Historique statut</div>
+      <div class="tl" id="p-timeline"></div>
+    </div>
+  </div>
+  <div class="panel-foot">
+    <button class="p-btn p-secondary" onclick="closePanel()">Fermer</button>
+    <a href="https://wa.me/message/HFUDRC5CYH5MF1" target="_blank" rel="noopener" class="p-btn p-wa">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.852L.057 23.75a.5.5 0 00.609.61l5.945-1.464A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.015-1.374l-.36-.214-3.732.919.952-3.63-.235-.374A9.818 9.818 0 1112 21.818z"/></svg>
+      WA
+    </a>
+    <button class="p-btn p-primary" id="p-action-btn" onclick="handlePrimaryAction()">Prendre en charge</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   COUP D'MAIN — JS OPÉRATIONNEL
+   Toutes les requêtes Airtable passent par
+   le proxy Netlify /.netlify/functions/airtable
+   Aucune clé API dans ce fichier.
+═══════════════════════════════════════════════ */
+
+const PROXY = "/.netlify/functions/airtable";
+const TABLE = "Missions"; // ← Nom exact de ta table Airtable
+
+let allRecords   = [];
+let currentRecord = null;
+let statusFilter = "all";
+let tagF         = "all";
+let searchQ      = "";
+
+// ── DATE ──
+document.getElementById('topbar-date').textContent =
+  new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+// ── PROXY HELPER ──
+async function apiCall(action, params = {}, body = null) {
+  const qs = new URLSearchParams({ table: TABLE, action, ...params }).toString();
+  const opts = { method: body ? (action === 'create' ? 'POST' : 'PATCH') : 'GET', headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(`${PROXY}?${qs}`, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// ── LOAD MISSIONS ──
+async function loadMissions() {
+  setConnStatus(false);
+  try {
+    const data = await apiCall('list');
+    allRecords = data.records || [];
+    setConnStatus(true);
+    updateStats();
+    renderTable();
+    document.getElementById('sb-count').textContent = allRecords.length;
+  } catch (err) {
+    setConnStatus(false);
+    document.getElementById('mission-tbody').innerHTML =
+      `<tr><td colspan="11" style="text-align:center;padding:3rem;color:var(--red);font-size:.6rem;">
+        Erreur de connexion Airtable : ${err.message}<br>
+        <span style="color:var(--muted);font-size:.55rem;">Vérifiez que AIRTABLE_API_KEY est configurée dans Netlify → Environment variables</span>
+      </td></tr>`;
+    showToast('Erreur Airtable : ' + err.message, true);
+  }
+}
+
+// ── CONN STATUS ──
+function setConnStatus(live) {
+  const dot   = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  const usr   = document.getElementById('user-conn');
+  dot.className   = 'conn-dot' + (live ? ' live' : '');
+  label.className = 'conn-label' + (live ? ' live' : '');
+  label.textContent = live ? 'Airtable connecté' : 'Hors connexion';
+  if (usr) usr.textContent = live ? 'Connecté' : 'Hors ligne';
+}
+
+// ── STATS ──
+function updateStats() {
+  const total    = allRecords.length;
+  const actives  = allRecords.filter(r => r.fields['État d\'avancement'] === 'En diffusion').length;
+  const accepte  = allRecords.filter(r => r.fields['État d\'avancement'] === 'Accepté').length;
+  const clos     = allRecords.filter(r => r.fields['État d\'avancement'] === 'Clos' || r.fields['État d\'avancement'] === 'Cloturé').length;
+
+  const scores = allRecords.map(r => r.fields['Score de Fiabilité']).filter(s => typeof s === 'number');
+  const avgScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+
+  document.getElementById('st-total').textContent   = total;
+  document.getElementById('st-actives').textContent = actives;
+  document.getElementById('st-accepte').textContent = accepte;
+  document.getElementById('st-clos').textContent    = clos;
+  document.getElementById('st-score').textContent   = avgScore !== null ? avgScore + '/100' : '—';
+  if (avgScore !== null) {
+    document.getElementById('score-fill').style.width = avgScore + '%';
+  }
+}
+
+// ── RENDER TABLE ──
+function renderTable() {
+  let records = allRecords.filter(r => {
+    const f = r.fields;
+    const statut = f['État d\'avancement'] || '';
+    const spec   = f['Métier / Spécialité'] || '';
+    const prio   = f['Priorité'] || '';
+    const text   = JSON.stringify(f).toLowerCase();
+    const okStat = statusFilter === 'all' || statut === statusFilter;
+    const okTag  = tagF === 'all' || spec === tagF || prio === tagF;
+    const okSrch = !searchQ || text.includes(searchQ);
+    return okStat && okTag && okSrch;
+  });
+
+  document.getElementById('tbl-count').textContent = records.length + ' mission' + (records.length > 1 ? 's' : '');
+  document.getElementById('tbl-info').textContent  = records.length + ' / ' + allRecords.length + ' missions affichées';
+
+  if (records.length === 0) {
+    document.getElementById('mission-tbody').innerHTML =
+      `<tr><td colspan="11" style="text-align:center;padding:3rem;color:var(--muted);font-size:.6rem;letter-spacing:.1em;">Aucune mission correspondante.</td></tr>`;
+    return;
+  }
+
+  document.getElementById('mission-tbody').innerHTML = records.map(r => {
+    const f       = r.fields;
+    const id      = r.id;
+    const nom     = f['Nom du client'] || '—';
+    const contact = f['Contact'] || '—';
+    const spec    = f['Métier / Spécialité'] || '—';
+    const desc    = f['Description'] || '—';
+    const prio    = f['Priorité'] || '—';
+    const statut  = f['État d\'avancement'] || 'Nouveau';
+    const date    = f['Date_Execution_Souhaitee'] || '—';
+    const budget  = f['Budget estimé'] || '—';
+    const cat     = f['Catégorie'] || '';
+    const score   = f['Score de Fiabilité'];
+    const isClos  = statut === 'Clos' || statut === 'Cloturé';
+
+    // Niveau chantier
+    const niveau = cat === 'Cuisine' ? 'Gros chantier' : cat === 'Montage meuble' ? 'Petit chantier' : 'Standard';
+
+    return `
+    <tr class="${isClos ? 'cloture' : ''}" onclick="openPanel('${id}')">
+      <td style="font-size:.5rem;color:var(--muted);">${id.slice(-6)}</td>
+      <td class="cell-client"><strong>${nom}</strong><span>${contact}</span></td>
+      <td style="font-size:.58rem;">${spec}</td>
+      <td class="cell-desc">${desc}</td>
+      <td>${prioBadge(prio)}</td>
+      <td>${statusBadge(statut)}</td>
+      <td class="date-c">${date}</td>
+      <td class="budget-c">${budget}</td>
+      <td style="font-size:.55rem;color:var(--muted2);">${niveau}</td>
+      <td>${scoreChip(score)}</td>
+      <td><button class="act-btn" onclick="event.stopPropagation();openPanel('${id}')">Détail</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── BADGES ──
+function prioBadge(p) {
+  if (p==='Critique') return `<span class="badge b-crit"><span class="bd"></span>Critique</span>`;
+  if (p==='Moyenne')  return `<span class="badge b-moy"><span class="bd"></span>Moyenne</span>`;
+  if (p==='Basse')    return `<span class="badge b-bas"><span class="bd"></span>Basse</span>`;
+  return `<span style="font-size:.56rem;color:var(--muted)">${p}</span>`;
+}
+function statusBadge(s) {
+  const map = {
+    'Nouveau':'s-nouveau','Payé':'s-paye','Pris en charge':'s-matching',
+    'En diffusion':'s-diffusion','Accepté':'s-accepte',
+    'Confirmé':'s-confirme','Clos':'s-clos','Cloturé':'s-clos'
+  };
+  const cls = map[s] || 's-clos';
+  return `<span class="status-b ${cls}">${s}</span>`;
+}
+function scoreChip(s) {
+  if (s == null) return `<span style="color:var(--muted);font-size:.5rem;">—</span>`;
+  const cls = s >= 80 ? 'sc-a' : s >= 50 ? 'sc-b' : 'sc-c';
+  return `<span class="score-chip ${cls}">${s}/100</span>`;
+}
+
+// ── OPEN PANEL ──
+function openPanel(id) {
+  const r = allRecords.find(x => x.id === id);
+  if (!r) return;
+  currentRecord = r;
+  const f = r.fields;
+
+  const cat    = f['Catégorie'] || '';
+  const niveau = cat === 'Cuisine' ? 'Gros chantier' : cat === 'Montage meuble' ? 'Petit chantier' : 'Standard';
+  const score  = f['Score de Fiabilité'];
+  const statut = f['État d\'avancement'] || 'Nouveau';
+
+  document.getElementById('p-ref').textContent     = id.slice(-8).toUpperCase();
+  document.getElementById('p-name').textContent    = f['Nom du client'] || '—';
+  document.getElementById('p-spec').textContent    = f['Métier / Spécialité'] || '—';
+  document.getElementById('p-secteur').textContent = f['Secteur / Ville'] || '—';
+  document.getElementById('p-date').textContent    = f['Date_Execution_Souhaitee'] || '—';
+  document.getElementById('p-budget').textContent  = f['Budget estimé'] || '—';
+  document.getElementById('p-prio').textContent    = f['Priorité'] || '—';
+  document.getElementById('p-cat').textContent     = cat || '—';
+  document.getElementById('p-niveau').textContent  = niveau;
+  document.getElementById('p-desc').textContent    = f['Description'] || '—';
+  document.getElementById('p-contact').textContent = f['Contact'] || '—';
+  document.getElementById('p-status-select').value = statut;
+
+  // Score
+  const sv = document.getElementById('p-score');
+  sv.textContent = score != null ? score + '/100' : '—';
+  sv.style.color = score >= 80 ? 'var(--green)' : score >= 50 ? 'var(--gold)' : 'var(--red)';
+  document.getElementById('p-score-fill').style.width = (score || 0) + '%';
+
+  // Timeline
+  const PIPELINE = ['Nouveau','Payé','Pris en charge','En diffusion','Accepté','Inspection prévue','Confirmé','Clos'];
+  const si = PIPELINE.indexOf(statut);
+  document.getElementById('p-timeline').innerHTML = PIPELINE.map((s, i) =>
+    `<div class="tl-item">
+      <div class="tl-dot ${i <= si ? 'done' : ''}"></div>
+      <div><div class="tl-lbl">${s}</div><div class="tl-d">${i < si ? 'Complété' : i === si ? 'Statut actuel' : 'En attente'}</div></div>
+    </div>`
+  ).join('');
+
+  // Action btn
+  const ab = document.getElementById('p-action-btn');
+  if (statut === 'Clos' || statut === 'Cloturé') {
+    ab.textContent = 'Mission archivée'; ab.disabled = true; ab.style.opacity = '.4';
+  } else if (statut === 'En diffusion') {
+    ab.textContent = 'Verrouiller → Accepté'; ab.disabled = false; ab.style.opacity = '1';
+  } else {
+    ab.textContent = 'Prendre en charge'; ab.disabled = false; ab.style.opacity = '1';
+  }
+
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  currentRecord = null;
+}
+
+// ── UPDATE STATUS (via proxy) ──
+async function updateStatus() {
+  if (!currentRecord) return;
+  const newStatus = document.getElementById('p-status-select').value;
+  try {
+    await apiCall('update', { id: currentRecord.id }, { 'État d\'avancement': newStatus });
+    currentRecord.fields['État d\'avancement'] = newStatus;
+    // Si accepté → Heure de verrouillage
+    if (newStatus === 'Accepté') {
+      await apiCall('update', { id: currentRecord.id }, { 'Heure de Verrouillage': new Date().toISOString() });
+    }
+    if (newStatus === 'Payé') {
+      await apiCall('update', { id: currentRecord.id }, { 'Heure de Paiement': new Date().toISOString() });
+    }
+    showToast(`Statut mis à jour → ${newStatus}`);
+    await loadMissions();
+    openPanel(currentRecord.id);
+  } catch (err) {
+    showToast('Erreur : ' + err.message, true);
+  }
+}
+
+// ── PRIMARY ACTION ──
+async function handlePrimaryAction() {
+  if (!currentRecord) return;
+  const statut = currentRecord.fields['État d\'avancement'];
+  let next;
+  if (statut === 'En diffusion') next = 'Accepté';
+  else if (statut === 'Nouveau') next = 'Pris en charge';
+  else if (statut === 'Payé') next = 'En diffusion';
+  else next = 'Pris en charge';
+  document.getElementById('p-status-select').value = next;
+  await updateStatus();
+}
+
+// ── CREATE MISSION ──
+async function createMission(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours…';
+
+  const fields = {
+    'Nom du client':          document.getElementById('f-nom').value.trim(),
+    'Contact':                document.getElementById('f-contact').value.trim(),
+    'Métier / Spécialité':    document.getElementById('f-spec').value,
+    'Secteur / Ville':        document.getElementById('f-secteur').value.trim(),
+    'Date_Execution_Souhaitee': document.getElementById('f-date').value || undefined,
+    'Budget estimé':          document.getElementById('f-budget').value.trim(),
+    'Catégorie':              document.getElementById('f-categorie').value || undefined,
+    'Priorité':               document.querySelector('input[name="prio"]:checked')?.value || 'Moyenne',
+    'Description':            document.getElementById('f-desc').value.trim(),
+    'État d\'avancement':     'Nouveau',
+  };
+
+  // Niveau chantier calculé
+  const cat = fields['Catégorie'];
+  fields['Niveau de chantier'] = cat === 'Cuisine' ? 'Gros chantier' : cat === 'Montage meuble' ? 'Petit chantier' : 'Standard';
+
+  // Nettoyer les undefined
+  Object.keys(fields).forEach(k => { if (fields[k] === undefined || fields[k] === '') delete fields[k]; });
+
+  try {
+    await apiCall('create', {}, fields);
+    showToast('Mission créée dans Airtable ✓');
+    document.getElementById('add-form').reset();
+    showView('missions');
+    await loadMissions();
+  } catch (err) {
+    showToast('Erreur création : ' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Créer la mission dans Airtable →';
+  }
+}
+
+// ── FILTERS ──
+function filterByStatus(s, btn) {
+  statusFilter = s;
+  document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTable();
+}
+function tagFilter(t, btn) {
+  tagF = t;
+  document.querySelectorAll('.f-tag').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTable();
+}
+function searchMissions(v) { searchQ = v.toLowerCase(); renderTable(); }
+
+// ── VIEWS ──
+function showView(v) {
+  document.getElementById('view-missions').style.display = v === 'missions' ? 'block' : 'none';
+  document.getElementById('view-add').className = 'add-section' + (v === 'add' ? ' visible' : '');
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+}
+
+// ── TOAST ──
+function showToast(msg, error = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (error ? ' error' : '') + ' show';
+  t.style.borderLeftColor = error ? 'var(--red)' : 'var(--green)';
+  setTimeout(() => { t.className = 'toast'; }, 3500);
+}
+
+// ── INIT ──
+loadMissions();
+// Rafraîchissement automatique toutes les 60 secondes
+setInterval(loadMissions, 60000);
+</script>
+</body>
+</html>

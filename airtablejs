@@ -1,0 +1,124 @@
+// netlify/functions/airtable.js
+// ─────────────────────────────────────────────────────────────
+// Proxy sécurisé Airtable pour Coup d'Main
+// La clé API ne sort JAMAIS vers le navigateur.
+// Elle est lue depuis les variables d'environnement Netlify.
+//
+// SETUP (une seule fois) :
+//   Netlify → Site → Environment variables → Add variable
+//   Nom  : AIRTABLE_API_KEY
+//   Value: ta clé API Airtable (patlyBaC4Ec... — celle que tu as)
+// ─────────────────────────────────────────────────────────────
+
+const BASE_ID  = "apptgHQc8PSNBEI9x";
+const AIRTABLE = `https://api.airtable.com/v0/${BASE_ID}`;
+
+exports.handler = async (event) => {
+
+  const headers = {
+    "Access-Control-Allow-Origin":  "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+    "Content-Type": "application/json",
+  };
+
+  // Preflight CORS
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers, body: "" };
+  }
+
+  const apiKey = process.env.AIRTABLE_API_KEY;
+  if (!apiKey) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: "AIRTABLE_API_KEY non configurée dans les variables d'environnement Netlify." }),
+    };
+  }
+
+  // Parse params from query string
+  // Attendu : ?table=Missions&action=list|create|update|delete&id=recXXX
+  const params     = event.queryStringParameters || {};
+  const table      = params.table  || "Missions";
+  const action     = params.action || "list";
+  const recordId   = params.id     || "";
+  const filterFormula = params.filter || "";
+
+  const authHeader = { Authorization: `Bearer ${apiKey}` };
+
+  try {
+    let url, method, body;
+
+    switch (action) {
+
+      // ── LIST / FILTER ──────────────────────────────
+      case "list": {
+        let qs = `maxRecords=100&view=Grid%20view`;
+        if (filterFormula) qs += `&filterByFormula=${encodeURIComponent(filterFormula)}`;
+        url    = `${AIRTABLE}/${encodeURIComponent(table)}?${qs}`;
+        method = "GET";
+        break;
+      }
+
+      // ── GET ONE RECORD ─────────────────────────────
+      case "get": {
+        if (!recordId) return { statusCode: 400, headers, body: JSON.stringify({ error: "id requis pour action=get" }) };
+        url    = `${AIRTABLE}/${encodeURIComponent(table)}/${recordId}`;
+        method = "GET";
+        break;
+      }
+
+      // ── CREATE ────────────────────────────────────
+      case "create": {
+        const payload = JSON.parse(event.body || "{}");
+        url    = `${AIRTABLE}/${encodeURIComponent(table)}`;
+        method = "POST";
+        body   = JSON.stringify({ fields: payload });
+        break;
+      }
+
+      // ── UPDATE (PATCH) ────────────────────────────
+      case "update": {
+        if (!recordId) return { statusCode: 400, headers, body: JSON.stringify({ error: "id requis pour action=update" }) };
+        const patch = JSON.parse(event.body || "{}");
+        url    = `${AIRTABLE}/${encodeURIComponent(table)}/${recordId}`;
+        method = "PATCH";
+        body   = JSON.stringify({ fields: patch });
+        break;
+      }
+
+      // ── DELETE ────────────────────────────────────
+      case "delete": {
+        if (!recordId) return { statusCode: 400, headers, body: JSON.stringify({ error: "id requis pour action=delete" }) };
+        url    = `${AIRTABLE}/${encodeURIComponent(table)}/${recordId}`;
+        method = "DELETE";
+        break;
+      }
+
+      default:
+        return { statusCode: 400, headers, body: JSON.stringify({ error: `Action inconnue : ${action}` }) };
+    }
+
+    const fetchOptions = {
+      method,
+      headers: { ...authHeader, "Content-Type": "application/json" },
+    };
+    if (body) fetchOptions.body = body;
+
+    const res  = await fetch(url, fetchOptions);
+    const data = await res.json();
+
+    return {
+      statusCode: res.status,
+      headers,
+      body: JSON.stringify(data),
+    };
+
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: err.message }),
+    };
+  }
+};
