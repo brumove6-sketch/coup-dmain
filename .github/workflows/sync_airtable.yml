@@ -1,0 +1,26 @@
+name: Sync Airtable to GitHub
+on:
+  schedule:
+    - cron: '0 * * * *' # S'exécute automatiquement toutes les heures
+  workflow_dispatch: # Te permet de le lancer à la main quand tu veux
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Fetch Airtable Data
+        run: |
+          curl -v -H "Authorization: Bearer ${{ secrets.AIRTABLE_TOKEN }}" \
+          "https://api.airtable.com/v0/${{ secrets.AIRTABLE_BASE_ID }}/Artisans" \
+          > artisans_data.json
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "AirtableSyncBot"
+          git config --global user.email "bot@github.com"
+          git add artisans_data.json
+          git commit -m "Mise à jour des données Airtable" || exit 0
+          git push
