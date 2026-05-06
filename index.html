@@ -3,106 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coup d'Main — Dashboard Pro</title>
+    <title>Coup d'Main — Système Souverain</title>
     <style>
-        .airtable-widget {
-            --gold: #C9A84C; --navy: #080C16; --text: #E2DCD4;
-            --bg-card: #0F1623; --border: #1A2438;
-            font-family: sans-serif; color: var(--text);
-        }
-        .airtable-widget .form-card { 
-            background: var(--bg-card); border: 1px solid var(--border); 
-            padding: 2rem; border-radius: 8px; max-width: 800px; margin: auto; 
-        }
-        .airtable-widget .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .airtable-widget label { display: block; margin-bottom: 5px; color: #64748B; font-size: 0.8rem; text-transform: uppercase; }
-        .airtable-widget input, .airtable-widget select, .airtable-widget textarea { 
-            width: 100%; padding: 10px; background: var(--navy); border: 1px solid #222E45; 
-            color: white; border-radius: 4px; box-sizing: border-box;
-        }
-        .airtable-widget .btn-primary { 
-            background: var(--gold); color: black; border: none; padding: 15px 30px; 
-            cursor: pointer; font-weight: bold; margin-top: 20px; width: 100%; border-radius: 4px;
-        }
-        .airtable-widget .full { grid-column: 1 / -1; }
+        :root { --gold: #C9A84C; --navy: #080C16; --bg: #05070A; --card: #0F1623; --text: #E2DCD4; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; }
+        nav { background: var(--navy); padding: 15px; display: flex; justify-content: center; gap: 30px; border-bottom: 1px solid var(--gold); position: sticky; top: 0; }
+        nav a { color: var(--gold); text-decoration: none; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.9rem; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+        .section { display: none; }
+        .active { display: block; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: var(--card); border: 1px solid #1A2438; padding: 20px; border-radius: 12px; border-left: 5px solid var(--gold); }
+        .wa-btn { background: #25D366; color: white; text-align: center; text-decoration: none; display: block; padding: 12px; border-radius: 6px; margin-top: 15px; font-weight: bold; }
+        .badge { background: #1A2438; color: var(--gold); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; float: right; }
     </style>
 </head>
 <body>
 
-<div class="airtable-widget">
-    <div class="form-card">
-        <h2 style="color: var(--gold); margin-top: 0;">Nouvelle Mission — Prospects</h2>
-        <form id="prospect-form">
-            <div class="form-grid">
-                <div><label>Nom du client</label><input type="text" id="nom" required></div>
-                <div><label>Contact</label><input type="text" id="contact" required></div>
-                <div>
-                    <label>Métier / Spécialité</label>
-                    <select id="metier">
-                        <option>Plomberie</option><option>Électricité</option>
-                        <option>Cuisine</option><option>Autre</option>
-                    </select>
-                </div>
-                <div><label>Secteur / Ville</label><input type="text" id="secteur"></div>
-                <div><label>Date</label><input type="date" id="date"></div>
-                <div><label>Budget estimé</label><input type="text" id="budget"></div>
-                <div class="full">
-                    <label>Description</label>
-                    <textarea id="desc" rows="4"></textarea>
-                </div>
-            </div>
-            <button type="submit" class="btn-primary" id="submit-btn">ENREGISTRER LA MISSION</button>
-        </form>
+<nav>
+    <a onclick="show('prospects')">Missions (Prospects)</a>
+    <a onclick="show('artisans')">Répertoire Artisans</a>
+</nav>
+
+<div class="container">
+    <div id="prospects" class="section active">
+        <h1 style="color: var(--gold)">Flux des Missions</h1>
+        <div id="data-prospects" class="grid">Synchronisation Airtable...</div>
+    </div>
+
+    <div id="artisans" class="section">
+        <h1 style="color: var(--gold)">Base Artisans Qualifiés</h1>
+        <div id="data-artisans" class="grid">Synchronisation Airtable...</div>
     </div>
 </div>
 
 <script>
-const BASE_ID = 'apptgHQc8PSNBEl9x'; 
-const API_KEY = 'patlc8qJlwI6o0ENF'; 
+const API = {
+    base: 'apptgHQc8PSNBEl9x',
+    key: 'patlc8qJlwI6o0ENF'
+};
 
-document.getElementById('prospect-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('submit-btn');
-    btn.disabled = true;
-    btn.innerText = 'Synchronisation...';
+function show(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    load(id === 'prospects' ? 'Prospects' : 'Artisans', id === 'prospects' ? 'data-prospects' : 'data-artisans');
+}
 
-    const fields = {
-        "Nom du client": document.getElementById('nom').value,
-        "Contact": document.getElementById('contact').value,
-        "Métier / Spécialité": document.getElementById('metier').value,
-        "Secteur / Ville": document.getElementById('secteur').value,
-        "Date": document.getElementById('date').value,
-        "Budget estimé": document.getElementById('budget').value,
-        "Description": document.getElementById('desc').value,
-        "Statut": "Nouveau",
-        "IA_Arbitrage": "En attente"
-    };
-
+async function load(table, targetId) {
+    const container = document.getElementById(targetId);
     try {
-        const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Prospects`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ records: [ { fields: fields } ] })
+        const response = await fetch(`https://api.airtable.com/v0/${API.base}/${table}`, {
+            headers: { Authorization: `Bearer ${API.key}` }
         });
+        const data = await response.json();
+        render(data.records, container, table);
+    } catch (e) { container.innerHTML = "Erreur de connexion Airtable."; }
+}
 
-        if (response.ok) {
-            alert("Succès ! La mission a été enregistrée.");
-            document.getElementById('prospect-form').reset();
+function render(records, container, table) {
+    container.innerHTML = '';
+    records.forEach(r => {
+        const f = r.fields;
+        const div = document.createElement('div');
+        div.className = 'card';
+        
+        if(table === 'Prospects') {
+            div.innerHTML = `
+                <span class="badge">${f["Statut"] || 'Nouveau'}</span>
+                <h3>${f["Nom du client"] || 'Client'}</h3>
+                <p>${f["Métier / Spécialité"] || ''} - ${f["Secteur / Ville"] || ''}</p>
+                <a href="https://wa.me/${f["Contact"]}" class="wa-btn">CONTACTER WHATSAPP</a>`;
         } else {
-            const err = await response.json();
-            alert("Erreur : " + JSON.stringify(err.error));
+            div.innerHTML = `
+                <h3>${f["Nom"] || 'Artisan'}</h3>
+                <p><strong>Spécialité:</strong> ${f["Spécialité"] || ''}</p>
+                <a href="https://wa.me/${f["Téléphone"]}" class="wa-btn">APPELER PRESTATAIRE</a>`;
         }
-    } catch (error) {
-        alert("Erreur réseau.");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = 'ENREGISTRER LA MISSION';
-    }
-});
-</script>
+        container.appendChild(div);
+    });
+}
 
+// Lancement automatique au démarrage
+load('Prospects', 'data-prospects');
+</script>
 </body>
 </html>
