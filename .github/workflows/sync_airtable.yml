@@ -14,7 +14,7 @@ jobs:
       - name: Fetch Airtable Data
         run: |
           curl -v -H "Authorization: Bearer ${{ secrets.AIRTABLE_TOKEN }}" \
-          "https://api.airtable.com/v0/${{ secrets.AIRTABLE_BASE_ID }}/Artisans" \
+          "https://api.airtable.com/v0/${{ secrets.AIRTABLE_BASE_ID }}/Prestataires" \
           > artisans_data.json
 
       - name: Commit and Push
